@@ -12,8 +12,6 @@ import os
 import sys
 
 # ----------------- CONFIGURACIÓN -----------------
-# carpeta del script (rutas absolutas para evitar problemas con OneDrive/encoding)
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # ventana del mono: tamaño fijo (ancho, alto)
 MONO_W, MONO_H = 400, 400
@@ -26,9 +24,9 @@ DETECT_SCALE = 0.5
 
 # nombres de archivos de recursos (colocar en la misma carpeta que este script)
 IMAGES = {
-    'normal': os.path.join(BASE_DIR, 'mono_normal.jpg'),
-    'ojos_cerrados': os.path.join(BASE_DIR, 'mono_ojos_cerrados.jpeg'),
-    'boca_abierta': os.path.join(BASE_DIR, 'mono_boca_abierta.jpeg'),
+    'normal': os.path.join('./data/images', 'mono_normal.jpg'),
+    'ojos_cerrados': os.path.join('./data/images', 'mono_ojos_cerrados.jpeg'),
+    'boca_abierta': os.path.join('./data/images', 'mono_boca_abierta.jpeg'),
 }
 
 # ----------------- FUNCIONES -----------------

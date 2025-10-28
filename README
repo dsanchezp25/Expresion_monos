@@ -1,140 +1,185 @@
+---
+# 🐵 Expresión de Monos
+
+![Python](https://img.shields.io/badge/Python-3.8+-blue?logo=python)
+![OpenCV](https://img.shields.io/badge/OpenCV-4.x-green?logo=opencv)
+![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
 ---
 
-# **Expresión de Monos** — README
+## 🎬 Descripción del Proyecto
 
-## **Resumen**
+**Expresión de Monos** es un proyecto en **Python + OpenCV** que detecta en tiempo real **caras, ojos y sonrisas** desde una cámara web o fuente de vídeo (por ejemplo, **DroidCam**) y muestra un **avatar de mono** en una ventana separada.  
 
-Este script en Python captura vídeo en tiempo real desde una cámara (local o URL tipo DroidCam), detecta caras y muestra un "avatar/mono" sobre la cara de la persona en una ventana separada. Dependiendo de la detección de **ojos cerrados** y **sonrisa** en la cara, se selecciona una de tres imágenes del mono: **normal**, **ojos cerrados**, o **boca abierta**. Esta imagen se muestra centrada en una ventana con tamaño fijo.
+El mono cambia su expresión según la detección facial:
+- 🐒 **Normal**: cuando no se detectan gestos especiales.  
+- 😴 **Ojos cerrados**: si los ojos están parcialmente o completamente cerrados.  
+- 😁 **Boca abierta**: cuando se detecta una sonrisa.  
 
-## **Requisitos**
+---
 
-* **Python 3.8+**
-* **OpenCV (cv2)**
-* **NumPy**
+## 🧠 Tecnologías Utilizadas
 
-### **Instalación**
+- 🐍 **Python 3.8+**
+- 🧮 **NumPy**
+- 👁️ **OpenCV** (detección facial con *Haar Cascades*)
 
-Para instalar las dependencias necesarias, abre la terminal (asegúrate de usar el entorno virtual adecuado, si corresponde) y ejecuta:
+---
+
+## ⚙️ Instalación y Ejecución
+
+### 1️⃣ Clonar el repositorio
+```bash
+git clone https://github.com/tuusuario/expresion-de-monos.git
+cd expresion-de-monos
+````
+
+### 2️⃣ Instalar dependencias
 
 ```bash
 pip install opencv-python numpy
 ```
 
-## **Archivos Esperados**
+### 3️⃣ Archivos requeridos
 
-Coloca estos archivos en la misma carpeta que el script `cabeza_mono.py`:
+Coloca en la carpeta del script los siguientes archivos:
 
-* **`mono_normal.jpg`**: Imagen por defecto del mono.
-* **`mono_ojos_cerrados.jpeg`**: Imagen del mono con los ojos cerrados.
-* **`mono_boca_abierta.jpeg`**: Imagen del mono con la boca abierta (cuando se detecta sonrisa).
+| Archivo                   | Descripción                                      |
+| ------------------------- | ------------------------------------------------ |
+| `mono_normal.jpg`         | Imagen por defecto del mono.                     |
+| `mono_ojos_cerrados.jpeg` | Imagen del mono con los ojos cerrados.           |
+| `mono_boca_abierta.jpeg`  | Imagen del mono sonriendo o con la boca abierta. |
 
-Asegúrate de que los archivos de cascada de Haar de OpenCV estén correctamente instalados para la detección facial. Estos archivos se cargan automáticamente desde la carpeta de instalación de OpenCV.
+> ⚠️ Asegúrate de tener instalados los archivos de detección facial (`haarcascade_*.xml`) incluidos con OpenCV.
+> Estos se cargan automáticamente desde `cv2.data.haarcascades`.
 
-## **Descripción del Código**
-
-### 1) **Encabezado y Configuración**
-
-* **`BASE_DIR`**: Directorio del script. Se usan rutas absolutas para evitar problemas con OneDrive o caracteres Unicode.
-* **`MONO_W`, `MONO_H`**: Tamaño fijo (ancho, alto) de la ventana donde se muestra el mono.
-* **`CAM_INDEX`**: Índice de la fuente de vídeo: número de cámara (0,1...) o una URL (por ejemplo, `http://IP:PORT/video` para DroidCam).
-* **`DETECT_SCALE`**: Factor de escala para detección rápida. Valores menores a 1.0 aceleran la detección al procesar la imagen en una versión reducida.
-
-### 2) **Funciones**
-
-* **`load_image_unicode(path, flags)`**: Carga imágenes desde rutas Windows que pueden contener caracteres especiales. Utiliza `np.fromfile` y `cv2.imdecode` en lugar de `cv2.imread`. Devuelve `None` si no puede cargar la imagen.
-* **`load_cascade(name)`**: Carga un **Haar cascade** desde `cv2.data.haarcascades`. Si el archivo no existe, devuelve un `CascadeClassifier` vacío.
-* **`fit_image_to_canvas(img, canvas_w, canvas_h, bg_color)`**: Redimensiona `img` manteniendo la relación de aspecto y la centra en un canvas de tamaño fijo (rellenando con `bg_color` si es necesario).
-
-### 3) **Carga de Recursos**
-
-* **Cascades de OpenCV**:
-
-  * `haarcascade_frontalface_default.xml` (obligatorio)
-  * `haarcascade_eye.xml` (obligatorio)
-  * `haarcascade_smile.xml` (opcional, usado para detectar sonrisas/boca abierta)
-
-  Estos cascades se cargan desde `cv2.data.haarcascades`. Si faltan los cascades obligatorios, el script termina con un error. Si falta `haarcascade_smile.xml`, el script simplemente omite la detección de sonrisas.
-
-* **Imágenes del mono**:
-  Se cargan con `load_image_unicode`. Si no se puede cargar la imagen `mono_normal.jpg`, el script se detiene con un mensaje de error.
-
-### 4) **Inicialización de Ventanas y Cámara**
-
-* Se crean dos ventanas:
-
-  * **`Camara`**: Muestra el feed original de la cámara con rectángulos de detección.
-  * **`Mono Avatar Separado`**: Ventana de tamaño fijo (definido por `MONO_W` y `MONO_H`) para mostrar el mono.
-
-* **`cv2.VideoCapture(CAM_INDEX)`** abre la cámara. Si no se puede abrir, el script termina.
-
-### 5) **Bucle Principal — Lógica de Detección y Visualización**
-
-* Se lee un frame de la cámara y se aplica un "flip horizontal" para que la vista sea tipo espejo.
-* La imagen se redimensiona (`small`) para acelerar la detección.
-* La **detección de la cara** se realiza sobre la imagen reducida.
-* Las coordenadas detectadas de las caras se convierten a escala original.
-* Para cada cara detectada:
-
-  * Se dibuja un rectángulo en la ventana **`Camara`**.
-  * Se toma una ROI (región de interés) para los **ojos** (mitad superior de la cara) y para la **boca/sonrisa** (mitad inferior de la cara).
-  * Si se detecta una **sonrisa** en la boca o **ojos cerrados**, se selecciona la imagen correspondiente del mono.
-  * Si no se detectan caras, se muestra la imagen de mono "normal" en el canvas fijo.
-* La imagen del mono se redimensiona al tamaño estimado de la cara y se añade a la lista de monos a mostrar.
-* La ventana **`Mono Avatar Separado`** muestra el mono centrado en un canvas de tamaño fijo.
-
-### 6) **Parámetros Importantes y Recomendaciones**
-
-* **`DETECT_SCALE`**:
-
-  * **Más cercano a 1.0**: mayor precisión pero mayor carga de CPU.
-  * **Menor que 1.0 (ej. 0.4–0.6)**: mayor velocidad, útil para cámaras de alta resolución.
-
-* **Parámetros de `detectMultiScale`**:
-
-  * **`scaleFactor`** y **`minNeighbors`** pueden ajustarse para mejorar la detección según condiciones de iluminación y distancia de la cara.
-
-* **`CAM_INDEX`**:
-
-  * Si usas DroidCam, coloca la URL: `"http://<IP_DEL_MÓVIL>:4747/video"` o similar.
-  * Si la URL devuelve "ocupado", cierra el cliente o cualquier otra conexión que esté usando DroidCam.
-
-* **Tamaño de las imágenes del mono**:
-
-  * Las imágenes pueden ser de cualquier tamaño; se redimensionan para ajustarse al tamaño de la cara detectada. Asegúrate de que las imágenes sean lo suficientemente grandes como para verse claras.
-
-### **Solución de Problemas Comunes**
-
-* **Problemas con los cascades**:
-
-  * Si falta **`haarcascade_smile.xml`**, el script continuará sin la detección de la sonrisa, pero el resto de la funcionalidad seguirá funcionando.
-  * Si faltan los cascades esenciales (`haarcascade_frontalface_default.xml`, `haarcascade_eye.xml`), el script terminará con un error.
-
-* **Imágenes no cargadas**:
-
-  * Si `cv2.imread` devuelve `None`, el script usa **`load_image_unicode`** para manejar rutas con caracteres especiales o Unicode. Asegúrate de que las rutas a las imágenes sean correctas y accesibles.
-
-* **Problemas con DroidCam**:
-
-  * Verifica que la **IP y el puerto** de DroidCam estén correctos y que el teléfono y la PC estén en la misma red.
-  * Cierra otras aplicaciones que puedan estar usando la cámara del móvil.
-
-### **Mejoras Posibles**
-
-* Mostrar un mosaico con **todos los monos detectados** en lugar de solo el primero.
-* Añadir controles (trackbars) para ajustar **`scaleFactor`** y **`minNeighbors`** en tiempo real.
-* Sustituir los cascades Haar por un **detector DNN** (más robusto pero requiere más CPU/GPU).
-* Usar **landmarks faciales** para alinear el avatar con mayor precisión (sin que se vea distorsionado).
-* Implementar un sistema de **guardado automático de imágenes** cuando se detecta una determinada expresión o gestos.
-
-## **Ejecución**
-
-Desde la carpeta del script, ejecutar:
+### 4️⃣ Ejecutar el programa
 
 ```bash
 python cabeza_mono.py
 ```
 
-Para salir de la aplicación, presiona la tecla **`q`** o usa **Ctrl+C** en la terminal.
+Presiona **`q`** o **Ctrl+C** para salir.
 
 ---
+
+## 🧩 Funcionamiento Interno
+
+### 📸 1) Detección facial
+
+Se utilizan los **Haar Cascades** preentrenados de OpenCV:
+
+* `haarcascade_frontalface_default.xml` → Detección de cara.
+* `haarcascade_eye.xml` → Detección de ojos.
+* `haarcascade_smile.xml` → Detección de sonrisa (opcional).
+
+Si los archivos no se encuentran, el programa mostrará un mensaje de error o advertencia.
+
+---
+
+### 🧠 2) Lógica del flujo
+
+1. Se inicializa la cámara y las dos ventanas:
+
+   * 🖼️ **Camara** → muestra el vídeo con detecciones.
+   * 🐵 **Mono Avatar** → muestra el mono de expresión correspondiente.
+
+2. Cada frame se reduce (`DETECT_SCALE`) para acelerar la detección facial.
+
+3. Según las detecciones:
+
+   * Si hay **boca/sonrisa** → muestra `mono_boca_abierta`.
+   * Si hay pocos ojos detectados → muestra `mono_ojos_cerrados`.
+   * En caso contrario → muestra `mono_normal`.
+
+4. La imagen del mono se **ajusta al tamaño de la cara detectada** y se centra en la ventana.
+
+---
+
+## 🎛️ Parámetros Personalizables
+
+| Parámetro          | Descripción                                                 | Valor por defecto |
+| ------------------ | ----------------------------------------------------------- | ----------------- |
+| `CAM_INDEX`        | Fuente de vídeo (0 para cámara principal o URL de DroidCam) | `1`               |
+| `MONO_W`, `MONO_H` | Tamaño fijo de la ventana del mono (px)                     | `400, 400`        |
+| `DETECT_SCALE`     | Factor de reducción de la imagen para acelerar la detección | `0.5`             |
+
+> 🔧 **Consejo:**
+> Reduce `DETECT_SCALE` (0.4–0.6) para aumentar FPS si tu cámara tiene alta resolución.
+
+---
+
+## 🧰 Solución de Problemas
+
+| Problema                    | Solución                                                                                        |
+| --------------------------- | ----------------------------------------------------------------------------------------------- |
+| ❌ No detecta sonrisas       | Asegúrate de que `haarcascade_smile.xml` está disponible.                                       |
+| ⚠️ Error al cargar imágenes | Verifica que los nombres y rutas sean correctos y sin caracteres especiales.                    |
+| 📷 DroidCam no conecta      | Verifica IP y puerto (`http://<IP>:<PORT>/video`) y que ambos dispositivos estén en la misma red. |
+| 🐢 FPS bajos                | Reduce `DETECT_SCALE` o baja la resolución de la cámara.                                        |
+
+---
+
+## 🌟 Mejoras Futuras
+
+* Mostrar **varios monos** si se detectan múltiples caras.
+* Añadir **trackbars** para ajustar parámetros de detección en tiempo real.
+* Sustituir Haar Cascades por un **modelo DNN** o **MediaPipe** para detección avanzada.
+* Implementar **landmarks faciales** para alinear el mono con precisión.
+* Guardar automáticamente imágenes cuando se detecten expresiones específicas.
+
+---
+
+## 🧑‍💻 Ejemplo de Uso
+
+## 🧩 Demostración
+
+El siguiente ejemplo muestra el funcionamiento del proyecto **Expresión de Monos**.  
+La cámara detecta la cara, los ojos y la sonrisa del usuario en tiempo real, mientras una segunda ventana muestra un **avatar de mono** que reacciona a esas expresiones.
+
+---
+
+### 🎥 Vista general
+
+<p align="center">
+  <img src="output/demo_monkey.gif" alt="Demo Expresión de Monos" width="600"/>
+</p>
+
+> 📹 En el GIF se observa cómo el mono **abre la boca cuando el usuario sonríe** y **cierra los ojos cuando el usuario parpadea**.
+
+---
+
+### 🧠 Ventanas del programa
+
+<p align="center">
+  <img src="output/demo_monkey.png" alt="Demo Expresión de Monos" width="600"/>
+</p>
+
+> 🟢 La ventana **Camara** muestra la detección en vivo con un rectángulo verde sobre el rostro.  
+> 🐒 La ventana **Mono Avatar Separado** mantiene un tamaño fijo y centra el mono con la expresión correspondiente.
+
+---
+
+### 📸 Reacciones del mono
+
+| Expresión | Imagen del mono |
+|------------|-----------------|
+| 😐 Normal | <img src="data/images/mono_normal.jpg" alt="Mono normal" width="300"/> |
+| 😴 Ojos cerrados | ![Mono ojos cerrados](data/images/mono_ojos_cerrados.jpeg) |
+| 😁 Boca abierta / sonrisa | ![Mono boca abierta](data/images/mono_boca_abierta.jpeg) |
+
+> Estas imágenes corresponden a los tres estados posibles del avatar, seleccionados según las detecciones faciales de OpenCV.
+---
+
+## 📜 Licencia
+
+Este proyecto se distribuye bajo la licencia [MIT](LICENSE).
+
+---
+
+## ✍️ Autor
+
+**Daniel Sánchez Parra**
+💡 Inspirado en sistemas de realidad aumentada simples como filtros de cámara.
+
+
